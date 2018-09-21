@@ -38,18 +38,18 @@ android {
         }
     }
 
-    /*
     libraryVariants.all { variant ->
         def manifestParser = new com.android.builder.core.DefaultManifestParser(
                 android.sourceSets.main.manifest.srcFile)
 
         def packageName = manifestParser.getPackage()
         def newName = packageName + '-' + variant.buildType.name + '.aar'
-
-        def originalFile = variant.outputs[0].outputFile
-        variant.outputs[0].outputFile = new File(originalFile.parent, newName)
+        variant.outputs.all { output ->
+            outputFileName = new File(
+                    newName,
+                    output.outputFile.name)
+        }
     }
-    */
 }
 
 dependencies {
