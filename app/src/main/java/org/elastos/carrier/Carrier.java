@@ -23,12 +23,14 @@
 package org.elastos.carrier;
 
 import java.nio.ByteBuffer;
+import java.nio.ByteOrder;
 import java.nio.charset.Charset;
+import java.security.InvalidAlgorithmParameterException;
 import java.util.List;
 import java.util.ArrayList;
 import java.util.Arrays;
 
-import org.elastos.carrier.exceptions.CarrierException;
+import org.elastos.carrier.exceptions.ElastosException;
 
 /**
  * The class representing Carrier node instance.
@@ -347,9 +349,9 @@ public class Carrier {
 	 * 		handler		The interface handler for carrier node.
 	 *
 	 * @throws
-	 * 		CarrierException
+	 * 		ElastosException
 	 */
-	public static void initializeInstance(Options options, CarrierHandler handler) throws CarrierException {
+	public static void initializeInstance(Options options, CarrierHandler handler) throws ElastosException {
 		if (options == null || handler == null)
 				throw new IllegalArgumentException();
 
@@ -358,7 +360,7 @@ public class Carrier {
 			Carrier tmp = new Carrier(handler);
 
 			if (!tmp.native_init(options, callbacks))
-				throw CarrierException.fromErrorCode(get_error_code());
+				throw new ElastosException(get_error_code());
 
 			Log.i(TAG, "Carrier node instance created");
 			carrier = tmp;
@@ -438,10 +440,10 @@ public class Carrier {
 	 * @return
 	 *  	the node address.
 	 */
-	public String getAddress() throws CarrierException {
+	public String getAddress() throws ElastosException {
 		String address = get_address();
 		if (address == null)
-			throw CarrierException.fromErrorCode(get_error_code());
+			throw new ElastosException(get_error_code());
 
 		Log.d(TAG, "Current carrier address: " + address);
 		return address;
@@ -453,10 +455,10 @@ public class Carrier {
 	 * @return
 	 * 		the nodeid.
 	 */
-	public String getNodeId() throws CarrierException {
+	public String getNodeId() throws ElastosException {
 		String nodeId = get_node_id();
 		if (nodeId == null)
-			throw CarrierException.fromErrorCode(get_error_code());
+			throw new ElastosException(get_error_code());
 
 		Log.d(TAG, "Current carrier NodeId: " + nodeId);
 		return nodeId;
@@ -468,7 +470,7 @@ public class Carrier {
 	 * @return
 	 * 		the userid.
 	 */
-	public String getUserId() throws CarrierException {
+	public String getUserId() throws ElastosException {
 		String userId = getNodeId();
 		Log.d(TAG, "Current carrier userId: " + userId);
 		return userId;
@@ -486,12 +488,12 @@ public class Carrier {
 	 *
 	 * @throws
 	 * 		IllegalArgumentException
-	 * 		CarrierException
+	 * 		ElastosException
 	 */
-	public void setNospam(int nospam) throws CarrierException {
+	public void setNospam(int nospam) throws ElastosException {
 		byte[] value = ByteBuffer.allocate(4).putInt(nospam).array();
 		if (!set_nospam(value))
-			throw CarrierException.fromErrorCode(get_error_code());
+			throw new ElastosException(get_error_code());
 	}
 
 	/**
@@ -503,12 +505,12 @@ public class Carrier {
 	 * request.
 	 *
 	 * @throws
-	 * 		CarrierException
+	 * 		ElastosException
 	 */
-	public int getNospam() throws CarrierException {
+	public int getNospam() throws ElastosException {
 		byte[] nospam = get_nospam();
 		if (nospam == null)
-			throw CarrierException.fromErrorCode(get_error_code());
+			throw new ElastosException(get_error_code());
 
 		return ByteBuffer.wrap(nospam).getInt();
 	}
@@ -524,14 +526,14 @@ public class Carrier {
 	 *
 	 * @throws
 	 * 		IllegalArgumentException
-	 * 		CarrierException
+	 * 		ElastosException
 	 */
-	public void setSelfInfo(UserInfo userinfo) throws CarrierException {
+	public void setSelfInfo(UserInfo userinfo) throws ElastosException {
 		if (userinfo == null)
 			throw new IllegalArgumentException();
 
 		if (!set_self_info(userinfo))
-			throw CarrierException.fromErrorCode(get_error_code());
+			throw new ElastosException(get_error_code());
 
 		Log.d(TAG, "Current user information updated");
 	}
@@ -543,13 +545,13 @@ public class Carrier {
 	 * 		the user information to the carrier node.
 	 *
 	 * @throws
-	 * 		CarrierException
+	 * 		ElastosException
 	 */
 
-	public UserInfo getSelfInfo() throws CarrierException {
+	public UserInfo getSelfInfo() throws ElastosException {
 		UserInfo userInfo = get_self_info();
 		if (userInfo == null)
-			throw CarrierException.fromErrorCode(get_error_code());
+			throw new ElastosException(get_error_code());
 
 		Log.d(TAG, "Current user information: " + userInfo);
 		return userInfo;
@@ -563,14 +565,14 @@ public class Carrier {
 	 *
 	 * @throws
 	 * 		IllegalArgumentException
-	 * 		CarrierException
+	 * 		ElastosException
 	 */
-	public void setPresence(PresenceStatus presence) throws CarrierException {
+	public void setPresence(PresenceStatus presence) throws ElastosException {
 		if (presence == null)
 			throw new IllegalArgumentException();
 
 		if (!set_presence(presence))
-			throw CarrierException.fromErrorCode(get_error_code());
+			throw new ElastosException(get_error_code());
 
 		Log.d(TAG, "Current presence updated to be " + presence);
 	}
@@ -579,12 +581,12 @@ public class Carrier {
 	 * Get self presence status.
 	 *
 	 * @throws
-	 * 		CarrierException
+	 * 		ElastosException
 	 */
-	public PresenceStatus getPresence() throws CarrierException {
+	public PresenceStatus getPresence() throws ElastosException {
 		PresenceStatus presence = get_presence();
 		if (presence == null)
-			throw CarrierException.fromErrorCode(get_error_code());
+			throw new ElastosException(get_error_code());
 
 		Log.d(TAG, "Current presence " + presence);
 		return presence;
@@ -611,9 +613,9 @@ public class Carrier {
 	 * 		The list of friend information to current user
 	 *
 	 * @throws
-	 * 		CarrierException
+	 * 		ElastosException
 	 */
-	public List<FriendInfo> getFriends() throws CarrierException {
+	public List<FriendInfo> getFriends() throws ElastosException {
 		List<FriendInfo> friends = new ArrayList<FriendInfo>();
 
 		boolean result = get_friends(new FriendsIterator() {
@@ -627,7 +629,7 @@ public class Carrier {
 		}, friends);
 
 		if (!result)
-			throw CarrierException.fromErrorCode(get_error_code());
+			throw new ElastosException(get_error_code());
 
 		Log.d(TAG, "Current user's friends listed below: +++++>>");
 		for (FriendInfo friend: friends) {
@@ -649,15 +651,15 @@ public class Carrier {
 	 *
 	 * @throws
 	 * 		IllegalArgumentException
-	 * 		CarrierException
+	 * 		ElastosException
 	 */
-	public FriendInfo getFriend(String userId) throws CarrierException {
+	public FriendInfo getFriend(String userId) throws ElastosException {
 		if (userId == null || userId.length() == 0)
 			throw new IllegalArgumentException();
 
 		FriendInfo friendInfo = get_friend(userId);
 		if (friendInfo == null)
-			throw CarrierException.fromErrorCode(get_error_code());
+			throw new ElastosException(get_error_code());
 
 		Log.d(TAG, "The information of friend " + userId + ": " + friendInfo);
 		return friendInfo;
@@ -676,15 +678,15 @@ public class Carrier {
 	 *
 	 * @throws
 	 * 		IllegalArgumentException
-	 * 		CarrierException
+	 * 		ElastosException
 	 */
-	public void labelFriend(String userId, String label) throws CarrierException {
+	public void labelFriend(String userId, String label) throws ElastosException {
 		if (userId == null || userId.length() == 0 ||
 			label  == null || label.length() == 0)
 			throw new IllegalArgumentException();
 
 		if (!label_friend(userId, label))
-			throw CarrierException.fromErrorCode(get_error_code());
+			throw new ElastosException(get_error_code());
 
 		Log.d(TAG, "Label friend " + userId + " as  " + label);
 	}
@@ -700,9 +702,9 @@ public class Carrier {
 	 *
 	 * @throws
 	 * 		IllegalArgumentException
-	 * 		CarrierException
+	 * 		ElastosException
 	 */
-	public boolean isFriend(String userId) throws CarrierException {
+	public boolean isFriend(String userId) throws ElastosException {
 		if (userId == null || userId.length() == 0)
 			throw new IllegalArgumentException();
 
@@ -722,9 +724,9 @@ public class Carrier {
 	 *
 	 * @throws
 	 * 		IllegalArgumentException
-	 * 		CarrierException
+	 * 		ElastosException
 	 */
-	public void addFriend(String address, String hello) throws CarrierException {
+	public void addFriend(String address, String hello) throws ElastosException {
 		if (address == null || address.length() == 0)
 			throw new IllegalArgumentException();
 
@@ -732,7 +734,7 @@ public class Carrier {
 				hello + ")");
 
 		if (!add_friend(address, hello))
-			throw CarrierException.fromErrorCode(get_error_code());
+			throw new ElastosException(get_error_code());
 
 		Log.d(TAG, "Added friend " + address + " success");
 	}
@@ -746,14 +748,14 @@ public class Carrier {
 	 * 		userId 		The user id who want be friend with us.
 	 * @throws
 	 *		IllegalArgumentException
-	 * 		CarrierException
+	 * 		ElastosException
 	 */
-	public void acceptFriend(String userId) throws CarrierException {
+	public void acceptFriend(String userId) throws ElastosException {
 		if (userId == null || userId.length() == 0)
 			throw new IllegalArgumentException();
 
 		if (!accept_friend(userId))
-			throw CarrierException.fromErrorCode(get_error_code());
+			throw new ElastosException(get_error_code());
 
 		Log.d(TAG, "Accepted friend request from " + userId);
 	}
@@ -768,14 +770,14 @@ public class Carrier {
 	 *
 	 * @throws
 	 * 		IllegalArgumentException
-	 * 		CarrierException
+	 * 		ElastosException
 	 */
-	public void removeFriend(String userId) throws CarrierException {
+	public void removeFriend(String userId) throws ElastosException {
 		if (userId == null || userId.length() == 0)
 			throw new IllegalArgumentException();
 
 		if (!remove_friend(userId))
-			throw CarrierException.fromErrorCode(get_error_code());
+			throw new ElastosException(get_error_code());
 
 		Log.d(TAG, "Friend " + userId + " was removed");
 	}
@@ -794,9 +796,9 @@ public class Carrier {
 	 *
 	 * @throws
 	 * 		IllegalArgumentException
-	 * 		CarrierException
+	 * 		ElastosException
 	 */
-	public void sendFriendMessage(String to, String message) throws CarrierException {
+	public void sendFriendMessage(String to, String message) throws ElastosException {
 		if (to == null || to.length() == 0 ||
 				message == null || message.length() == 0)
 			throw new IllegalArgumentException();
@@ -818,15 +820,15 @@ public class Carrier {
 	 *
 	 * @throws
 	 * 		IllegalArgumentException
-	 * 		CarrierException
+	 * 		ElastosException
 	 */
-	public void sendFriendMessage(String to, byte[] message) throws CarrierException {
+	public void sendFriendMessage(String to, byte[] message) throws ElastosException {
 		if (to == null || to.length() == 0 ||
 				message == null || message.length == 0)
 			throw new IllegalArgumentException();
 
 		if (!send_message(to, message))
-			throw CarrierException.fromErrorCode(get_error_code());
+			throw new ElastosException(get_error_code());
 
 		Log.d(TAG, "Send " + message.length + " bytes message to friend " + to);
 	}
@@ -846,10 +848,10 @@ public class Carrier {
 	 *
 	 * @throws
 	 * 		IllegalArgumentException
-	 * 		CarrierException
+	 * 		ElastosException
 	 */
 	public void inviteFriend(String to, String data, FriendInviteResponseHandler handler)
-			throws CarrierException {
+			throws ElastosException {
 
 		if (to == null || to.length() == 0 ||
 				data == null || data.length() == 0 || handler == null)
@@ -858,7 +860,7 @@ public class Carrier {
 		Log.d(TAG, "Inviting friend " + to + "with greet data " + data);
 
 		if (!friend_invite(to, data, handler))
-			throw CarrierException.fromErrorCode(get_error_code());
+			throw new ElastosException(get_error_code());
 
 		Log.d(TAG, "Send friend invite request to " + to);
 	}
@@ -880,10 +882,10 @@ public class Carrier {
 	 *
 	 * @throws
 	 * 		IllegalArgumentException
-	 * 		CarrierException
+	 * 		ElastosException
 	 */
 	public void replyFriendInvite(String to, int status, String reason, String data)
-			throws CarrierException {
+			throws ElastosException {
 		if (to == null || to.length() == 0 || (status != 0 && reason == null))
 			throw new IllegalArgumentException();
 
@@ -895,7 +897,7 @@ public class Carrier {
 					"and reason %s", to, status, reason));
 
 		if (!reply_friend_invite(to, status, reason, data))
-			throw CarrierException.fromErrorCode(get_error_code());
+			throw new ElastosException(get_error_code());
 
 		if (status == 0)
 			Log.d(TAG, String.format("Confirmed friend invite to %s with data [%s]", to, data));

@@ -18,8 +18,9 @@ import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.assertFalse;
 
 @RunWith(JUnit4.class)
-public class FriendMessageTest {
-	private static final String TAG = "FriendMessageTest";
+public class FriendLabelTest {
+	private static final String TAG = "FriendInviteTest";
+
 	private static TestContext context = new TestContext();
 	private static TestHandler handler = new TestHandler(context);
 	private static RobotConnector robot;
@@ -47,8 +48,9 @@ public class FriendMessageTest {
 			bundle.setFrom(friendId);
 
 			Log.d(TAG, "Robot connection status changed -> " + status.toString());
+
 			synchronized (this) {
-				notify();
+				this.notify();
 			}
 		}
 
@@ -56,7 +58,7 @@ public class FriendMessageTest {
 		public void onFriendAdded(Carrier carrier, FriendInfo info) {
 			Log.d(TAG, String.format("Friend %s added", info.getUserId()));
 			synchronized (this) {
-				notify();
+				this.notify();
 			}
 		}
 
@@ -64,99 +66,64 @@ public class FriendMessageTest {
 		public void onFriendRemoved(Carrier carrier, String friendId) {
 			Log.d(TAG, String.format("Friend %s removed", friendId));
 			synchronized (this) {
-				notify();
+				this.notify();
 			}
 		}
-
-		@Override
-		public void onFriendMessage(Carrier carrier, String from, byte[] message) {
-			TestContext.Bundle bundle = mContext.getExtra();
-			bundle.setFrom(from);
-			bundle.setExtraData(getActualValue(message));
-
-			Log.d(TAG, String.format("Friend message %s ", from));
-			synchronized (this) {
-				notify();
-			}
-		}
-	}
-
-	private static String getActualValue(byte[] data) {
-		//The string from robot has '\n', delete it.
-		byte[] newArray = new byte[data.length - 1];
-		System.arraycopy(data, 0, newArray, 0, data.length - 1);
-		return new String(newArray);
 	}
 
 	@Test
-	public void testSendMessageToFriend() {
-		assertTrue(TestHelper.addFriendAnyway(carrier, robot, context, handler));
-
-		context.reset();
-
+	public void testSetFriendLabel() {
 		try {
-			assertTrue(carrier.isFriend(robot.getNodeid()));
-			String out = "message-test";
+			assertTrue(TestHelper.addFriendAnyway(carrier, robot, context, handler));
+			assertTrue((carrier.isFriend(robot.getNodeid())));
 
-			carrier.sendFriendMessage(robot.getNodeid(), out);
-
-			String[] args = robot.readAck();
-			assertTrue(args != null && args.length == 1);
-			assertEquals(out, getActualValue(args[0].getBytes()));
+			String label = "test_robot";
+			carrier.labelFriend(robot.getNodeid(), label);
+			FriendInfo info = carrier.getFriend(robot.getNodeid());
+			assertEquals(info.getLabel(), label);
 		}
 		catch (ElastosException e) {
 			e.printStackTrace();
 			assertTrue(false);
 		}
-	}
-
-	@Test
-	public void testReceiveMessageFromFriend() {
-		try {
-			assertTrue(TestHelper.addFriendAnyway(carrier, robot, context, handler));
-			assertTrue(carrier.isFriend(robot.getNodeid()));
-
-			String msg = "message-test";
-			assertTrue(robot.writeCmd(String.format("fmsg %s %s", carrier.getUserId(), msg)));
-
-			// wait for message from robot.
-			synchronized (handler) {
-				handler.wait();
-			}
-
-			TestContext.Bundle bundle = context.getExtra();
-			assertEquals(robot.getNodeid(), bundle.getFrom());
-			assertEquals(msg, (String) bundle.getExtraData());
-		}
-		catch (ElastosException | InterruptedException e) {
+		catch (Exception e) {
 			e.printStackTrace();
 			assertTrue(false);
 		}
 	}
 
 	@Test
-	public void testSendMessageToStranger() {
+	public void testSetStrangerLabel() {
 		try {
-			TestHelper.removeFriendAnyway(carrier, robot, context, handler);
-			assertFalse(carrier.isFriend(robot.getNodeid()));
-			String msg = "test-message";
-			carrier.sendFriendMessage(robot.getNodeid(), msg);
+			assertTrue(TestHelper.removeFriendAnyway(carrier, robot, context, handler));
+			assertFalse((carrier.isFriend(robot.getNodeid())));
+
+			String label = "test_robot";
+			carrier.labelFriend(robot.getNodeid(), label);
 		}
 		catch (ElastosException e) {
 			e.printStackTrace();
 			assertEquals(e.getErrorCode(), 0x8100000A);
 		}
+		catch (Exception e) {
+			e.printStackTrace();
+			assertTrue(false);
+		}
 	}
 
 	@Test
-	public void testSendMessageToSelf() {
+	public void testSetSelfLabel() {
 		try {
-			String msg = "test-message";
-			carrier.sendFriendMessage(carrier.getUserId(), msg);
+			String label = "test_robot";
+			carrier.labelFriend(carrier.getUserId(), label);
 		}
 		catch (ElastosException e) {
 			e.printStackTrace();
-			assertEquals(e.getErrorCode(), 0x81000001);
+			assertEquals(e.getErrorCode(), 0x8100000A);
+		}
+		catch (Exception e) {
+			e.printStackTrace();
+			assertTrue(false);
 		}
 	}
 

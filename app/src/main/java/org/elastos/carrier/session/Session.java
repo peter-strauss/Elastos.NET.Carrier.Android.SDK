@@ -23,7 +23,7 @@
 package org.elastos.carrier.session;
 
 import org.elastos.carrier.Log;
-import org.elastos.carrier.exceptions.CarrierException;
+import org.elastos.carrier.exceptions.ElastosException;
 
 /**
  * The class representing Carrier session conversion with friends.
@@ -94,16 +94,16 @@ public class Session {
      *
      * @throws
      *      IllegalArgumentException
-     *      CarrierException
+     *      ElastosException
      */
     public void request(SessionRequestCompleteHandler handler)
-            throws CarrierException {
+            throws ElastosException {
 
         if (handler == null)
             throw new IllegalArgumentException();
 
         if (!native_request(handler))
-            throw CarrierException.fromErrorCode(get_error_code());
+            throw new ElastosException(get_error_code());
 
         Log.d(TAG, "Initiate session request to " + to);
     }
@@ -120,15 +120,15 @@ public class Session {
      *
      * @throws
      *      IllegalArgumentException
-     *      CarrierException
+     *      ElastosException
      */
-    public void replyRequest(int status, String reason) throws CarrierException {
+    public void replyRequest(int status, String reason) throws ElastosException {
 
         if (status != 0 && (reason == null || reason.length() == 0))
 			throw new IllegalArgumentException();
 
         if (!native_reply_request(status, reason))
-            throw CarrierException.fromErrorCode(get_error_code());
+            throw new ElastosException(get_error_code());
 
         if (status == 0) {
             Log.d(TAG, "Confirmed session request from " + to);
@@ -148,15 +148,15 @@ public class Session {
      *
      * @throws
      *      IllegalArgumentException
-     *      CarrierException
+     *      ElastosException
      */
-    public void start(String sdp) throws CarrierException {
+    public void start(String sdp) throws ElastosException {
 
         if (sdp == null || sdp.length() == 0)
 			throw new IllegalArgumentException();
 
         if (!native_start(sdp))
-            throw CarrierException.fromErrorCode(get_error_code());
+            throw new ElastosException(get_error_code());
 
         Log.d(TAG, "Session to " + to + " started");
     }
@@ -187,10 +187,10 @@ public class Session {
      *
      * @throws
      *      IllegalArgumentException
-     *      CarrierException
+     *      ElastosException
      */
     public Stream addStream(StreamType type, int options, StreamHandler handler)
-            throws CarrierException {
+            throws ElastosException {
 
         if (handler == null)
 			throw new IllegalArgumentException();
@@ -199,7 +199,7 @@ public class Session {
 
         Stream stream = add_stream(type, options, handler);
         if (stream == null)
-            throw CarrierException.fromErrorCode(get_error_code());
+            throw new ElastosException(get_error_code());
 
         Log.d(TAG, String.format("Stream %d with %s type created", stream.getStreamId(), type.name()));
 
@@ -214,14 +214,14 @@ public class Session {
      *
      * @throws
      *      IllegalArgumentException
-     *      CarrierException
+     *      ElastosException
      */
-    public void removeStream(Stream stream) throws CarrierException {
+    public void removeStream(Stream stream) throws ElastosException {
         if (stream == null)
 			throw new IllegalArgumentException();
 
         if (!remove_stream(stream.getStreamId(), stream))
-            throw CarrierException.fromErrorCode(get_error_code());
+            throw new ElastosException(get_error_code());
 
 
         Log.d(TAG, "Stream " + stream.getStreamId() + " was removed from session");
@@ -244,17 +244,17 @@ public class Session {
      *
      * @throws
      *      IllegalArgumentException
-     *      CarrierException
+     *      ElastosException
      */
     public void addService(String service, PortForwardingProtocol protocol, String host, String port)
-        throws CarrierException {
+        throws ElastosException {
 
         if (service == null || service.length() == 0 ||  host == null || host.length() == 0 ||
                 port == null || port.length() == 0)
 			throw new IllegalArgumentException();
 
         if (!add_service(service, protocol, host, port))
-            throw CarrierException.fromErrorCode(get_error_code());
+            throw new ElastosException(get_error_code());
 
 
         Log.d(TAG, "Service " + service + " added to session");

@@ -2,17 +2,16 @@ package org.elastos.carrier;
 
 import android.support.test.InstrumentationRegistry;
 import android.support.test.runner.AndroidJUnit4;
-import android.util.Log;
 
 import org.junit.Test;
 import org.junit.runner.RunWith;
 
-import org.elastos.carrier.common.Synchronizer;
 import org.elastos.carrier.common.TestOptions;
-import org.elastos.carrier.exceptions.CarrierException;
+import org.elastos.carrier.exceptions.ElastosException;
 
 import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertNotEquals;
+import static org.junit.Assert.assertNotNull;
+import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertTrue;
 
 @RunWith(AndroidJUnit4.class)
@@ -24,11 +23,11 @@ public class GetInstanceTest extends AbstractCarrierHandler {
 	}
 
 	class TestHandler extends AbstractCarrierHandler {
-		Synchronizer synch = new Synchronizer();
-
 		@Override
 		public void onReady(Carrier carrier) {
-			synch.wakeup();
+			synchronized(carrier) {
+				carrier.notify();
+			}
 		}
 	}
 
@@ -40,21 +39,17 @@ public class GetInstanceTest extends AbstractCarrierHandler {
 		try {
 			Carrier.initializeInstance(options, handler);
 			Carrier carrier = Carrier.getInstance();
-			assertNotEquals(null, carrier);
+			assertNotNull(carrier);
 
-			carrier.start(1000);
-			handler.synch.await();
-
-			assertEquals(carrier, Carrier.getInstance());
+			carrier.start(0);
+			synchronized(carrier) {
+				carrier.wait();
+			}
 			assertEquals(carrier.getNodeId(), carrier.getUserId());
 
 			carrier.kill();
-			assertEquals(null, Carrier.getInstance());
-
-		} catch (CarrierException e) {
-			Log.e(TAG, "test error:" + e.getErrorCode());
-			assertTrue(false);
-		} catch (Exception e) {
+			assertNull(Carrier.getInstance());
+		} catch (ElastosException | InterruptedException e) {
 			e.printStackTrace();
 			assertTrue(false);
 		}
