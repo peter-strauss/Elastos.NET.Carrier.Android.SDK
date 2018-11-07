@@ -13,8 +13,10 @@ import org.elastos.carrier.common.TestHelper;
 import org.elastos.carrier.common.TestHelper.ITestChannelExecutor;
 import org.elastos.carrier.common.TestOptions;
 import org.elastos.carrier.exceptions.ElastosException;
+import org.elastos.carrier.robot.Robot;
 import org.junit.AfterClass;
 import org.junit.BeforeClass;
+import org.junit.Ignore;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 
@@ -22,12 +24,18 @@ import java.io.DataInputStream;
 import java.io.DataOutputStream;
 import java.io.EOFException;
 import java.io.IOException;
+import java.net.InetAddress;
+import java.net.NetworkInterface;
 import java.net.ServerSocket;
 import java.net.Socket;
+import java.net.SocketException;
+import java.net.UnknownHostException;
+import java.util.Enumeration;
 
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertTrue;
+import static org.junit.Assert.fail;
 
 @RunWith(AndroidJUnit4.class)
 public class PortforwardingTest {
@@ -47,6 +55,7 @@ public class PortforwardingTest {
 	private static final int sentCount = 1024;
 	private static ServerSocket localServer;
 	private static Socket localClient;
+	private static final String localIP = getLocalIpAddress();
 
 	static class TestHandler extends AbstractCarrierHandler {
 		private TestContext mContext;
@@ -320,7 +329,7 @@ public class PortforwardingTest {
 	void serverThreadBody(final LocalPortforwardingData ctxt) {
 		try {
 			ctxt.returnValue = -1;
-			localServer = new ServerSocket(Integer.parseInt(port));
+			localServer = new ServerSocket(Integer.parseInt(port), 10, InetAddress.getByName(localIP));
 			Log.d(TAG, "server begin to receive data:");
 
 			Socket client = localServer.accept();
@@ -347,7 +356,10 @@ public class PortforwardingTest {
 		}
 		finally {
 			try {
-				localServer.close();
+				if (localServer != null) {
+					localServer.close();
+					localServer = null;
+				}
 			}
 			catch (IOException e) {
 				e.printStackTrace();
@@ -357,7 +369,7 @@ public class PortforwardingTest {
 
 	void clientThreadBody(final LocalPortforwardingData ctxt) {
 		try {
-			localClient = new Socket("127.0.0.1", Integer.parseInt(ctxt.port));
+			localClient = new Socket(ctxt.serviceIP, Integer.parseInt(ctxt.port));
 			char[] data = new char[1024];
 			for (int i = 0; i < 1024; i++) {
 				data[i] = 'D';
@@ -370,22 +382,24 @@ public class PortforwardingTest {
 			Log.d(TAG, "client begin to send data:");
 
 			DataOutputStream writer = new DataOutputStream(localClient.getOutputStream());
-			writer.writeUTF(new String(data));
+			for (int i = 0; i < ctxt.sentCount; i++) {
+				writer.writeUTF(new String(data));
+			}
 
 			Log.d(TAG, String.format("finished sending %d Kbytes data", ctxt.sentCount));
 			Log.d(TAG, "client send data in success");
 
 			ctxt.returnValue = 0;
 		}
-		catch (IOException e) {
-			e.printStackTrace();
-		}
-		catch (InterruptedException e) {
+		catch (IOException | InterruptedException e) {
 			e.printStackTrace();
 		}
 		finally {
 			try {
-				localClient.close();
+				if (localClient != null) {
+					localClient.close();
+					localClient = null;
+				}
 			}
 			catch (IOException e) {
 				e.printStackTrace();
@@ -394,13 +408,14 @@ public class PortforwardingTest {
 	}
 
 	class LocalPortforwardingData {
-		public String port = null;
-		public int recvCount = 0;
-		public int sentCount = 0;
-		public int returnValue = -1;
+		private String serviceIP;
+		private String port = null;
+		private int recvCount = 0;
+		private int sentCount = 0;
+		private int returnValue = -1;
 	}
 
-	int forwardingData(String servicePort, String shadowServicePort)
+	int forwardingData(String serviceIP, String servicePort, String shadowServicePort)
 	{
 		final LocalPortforwardingData server_ctxt = new LocalPortforwardingData();
 		server_ctxt.port = servicePort;
@@ -418,6 +433,7 @@ public class PortforwardingTest {
 		serverThread.start();
 
 		final LocalPortforwardingData client_ctxt = new LocalPortforwardingData();
+		client_ctxt.serviceIP = serviceIP;
 		client_ctxt.port = shadowServicePort;
 		client_ctxt.recvCount = 0;
 		client_ctxt.sentCount = 1024;
@@ -462,20 +478,23 @@ public class PortforwardingTest {
 		@Override
 		public void executor() {
 			try {
-				assertTrue(robot.writeCmd(String.format("spfsvcadd %s tcp  127.0.0.1 %s", service, port)));
+				assertTrue(robot.writeCmd(String.format("spfsvcadd %s tcp %s %s", service, Robot.ROBOTHOST, port)));
 
 				String[] args = robot.readAck();
 				assertTrue(args != null && args.length == 2);
 				assertEquals("spfsvcadd", args[0]);
 				assertEquals("success", args[1]);
 
-				int pfid = stream.openPortForwarding(service, PortForwardingProtocol.TCP, "127.0.0.1", shadowPort);
+				int pfid = stream.openPortForwarding(service, PortForwardingProtocol.TCP, localIP, shadowPort);
 
 				if (pfid > 0) {
 					Log.d(TAG, "Open portforwarding successfully");
 				}
+				else {
+					Log.d(TAG, String.format("Open portforwarding failed (0x%x)", pfid));
+				}
 
-				int rc = forwardingData(port, shadowPort);
+				int rc = forwardingData(localIP, port, shadowPort);
 				assertTrue(rc == 0);
 
 				stream.closePortForwarding(pfid);
@@ -494,16 +513,15 @@ public class PortforwardingTest {
 		@Override
 		public void executor() {
 			try {
-				session.addService(service, PortForwardingProtocol.TCP, "127.0.0.1", port);
+				session.addService(service, PortForwardingProtocol.TCP, localIP, port);
 
-				assertTrue(robot.writeCmd(String.format("spfopen %s tcp 127.0.0.1 %s", service, shadowPort)));
+				assertTrue(robot.writeCmd(String.format("spfopen %s tcp %s %s", service, Robot.ROBOTHOST, shadowPort)));
 
 				String[] args = robot.readAck();
 				assertTrue(args != null && args.length == 2);
 				assertEquals("spfopen", args[0]);
 				assertEquals("success", args[1]);
-
-				int rc = forwardingData(port, shadowPort);
+				int rc = forwardingData(Robot.ROBOTHOST, port, shadowPort);
 				assertTrue(rc == 0);
 
 				assertTrue(robot.writeCmd("spfclose"));
@@ -522,6 +540,26 @@ public class PortforwardingTest {
 		}
 	}
 
+	public static String getLocalIpAddress() {
+		try {
+			for (Enumeration<NetworkInterface> en = NetworkInterface
+					.getNetworkInterfaces(); en.hasMoreElements();) {
+				NetworkInterface intf = en.nextElement();
+				for (Enumeration<InetAddress> enumIpAddr = intf
+						.getInetAddresses(); enumIpAddr.hasMoreElements();) {
+					InetAddress inetAddress = enumIpAddr.nextElement();
+					if (!inetAddress.isLoopbackAddress() && !inetAddress.isLinkLocalAddress()) {
+						return inetAddress.getHostAddress().toString();
+					}
+				}
+			}
+		} catch (SocketException ex) {
+			Log.e("IpAddress", ex.toString());
+		}
+
+		return null;
+	}
+
 	void portforwardingImpl(int stream_options)
 	{
 		TestPortforwardingExecutor executor = new TestPortforwardingExecutor();
@@ -534,7 +572,7 @@ public class PortforwardingTest {
 		testStreamScheme(StreamType.Text, stream_options, executor);
 	}
 
-	@Test
+	@Ignore
 	public void testSessionPortforwardingReliable() {
 		int stream_options = 0;
 		stream_options |= Stream.PROPERTY_RELIABLE;
@@ -543,7 +581,7 @@ public class PortforwardingTest {
 		portforwardingImpl(stream_options);
 	}
 
-	@Test
+	@Ignore
 	public void testSessionPortforwardingReliablePlain() {
 		int stream_options = 0;
 		stream_options |= Stream.PROPERTY_RELIABLE;
@@ -577,7 +615,10 @@ public class PortforwardingTest {
 	public static void setUp() {
 		robot = RobotConnector.getInstance();
 		TestOptions options = new TestOptions(context.getAppPath());
-
+		if (!robot.connectToRobot()) {
+			android.util.Log.e(TAG, "Connection to robot failed, abort this test");
+			fail();
+		}
 		try {
 			Carrier.initializeInstance(options, handler);
 			carrier = Carrier.getInstance();
@@ -600,5 +641,6 @@ public class PortforwardingTest {
 	public static void tearDown() {
 		carrier.kill();
 		sessionManager.cleanup();
+		robot.disconnect();
 	}
 }

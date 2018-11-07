@@ -1,7 +1,6 @@
 package org.elastos.carrier;
 
 import org.elastos.carrier.common.RobotConnector;
-import org.elastos.carrier.session.BundleTest;
 import org.elastos.carrier.session.ChannelTest;
 import org.elastos.carrier.session.ManagerTest;
 import org.elastos.carrier.session.NewTest;
@@ -31,11 +30,10 @@ import static org.junit.Assert.fail;
 		//Session
 		ManagerTest.class,
 		NewTest.class,
-		BundleTest.class,
-		//RequestReplyTest.class,
-		//StreamTest.class,
-		//PortforwardingTest.class,
-		//ChannelTest.class
+		RequestReplyTest.class,
+		StreamTest.class,
+		PortforwardingTest.class,
+		ChannelTest.class
 })
 public class RootTestsuite {
 	private static String TAG = "RootTestsuite";

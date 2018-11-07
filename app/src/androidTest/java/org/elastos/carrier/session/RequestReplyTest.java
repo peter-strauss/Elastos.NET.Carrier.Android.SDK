@@ -270,7 +270,7 @@ public class RequestReplyTest {
 
 			//Stream connecting
 			synchronized (streamHandler) {
-				streamHandler.wait();
+				streamHandler.wait(1000);
 			}
 
 			if ((!data.mState.equals(StreamState.Connecting)) && (data.mState.equals(StreamState.Connected))) {
@@ -289,7 +289,7 @@ public class RequestReplyTest {
 				streamHandler.wait(1000);
 			}
 
-			assertTrue(data.mState.equals(StreamState.Connected));
+			assertEquals(StreamState.Connected, data.mState);
 
 			if (channelExecutor != null) {
 				channelExecutor.executor();
