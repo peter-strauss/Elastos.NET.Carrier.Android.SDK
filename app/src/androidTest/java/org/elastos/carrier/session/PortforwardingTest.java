@@ -50,9 +50,8 @@ public class PortforwardingTest {
 	private static Session session;
 	private static Stream stream;
 	private static final String service = "test_portforwarding_service";
-	private static final String port = "20172";
-	private static final String shadowPort = "20173";
-	private static final int sentCount = 1024;
+	private static final int port = 20172;
+	private static int shadowPort = 20173;
 	private static ServerSocket localServer;
 	private static Socket localClient;
 	private static final String localIP = getLocalIpAddress();
@@ -329,7 +328,7 @@ public class PortforwardingTest {
 	void serverThreadBody(final LocalPortforwardingData ctxt) {
 		try {
 			ctxt.returnValue = -1;
-			localServer = new ServerSocket(Integer.parseInt(port), 10, InetAddress.getByName(localIP));
+			localServer = new ServerSocket(port, 10, InetAddress.getByName(localIP));
 			Log.d(TAG, "server begin to receive data:");
 
 			Socket client = localServer.accept();
@@ -369,7 +368,7 @@ public class PortforwardingTest {
 
 	void clientThreadBody(final LocalPortforwardingData ctxt) {
 		try {
-			localClient = new Socket(ctxt.serviceIP, Integer.parseInt(ctxt.port));
+			localClient = new Socket(ctxt.ip, ctxt.port);
 			char[] data = new char[1024];
 			for (int i = 0; i < 1024; i++) {
 				data[i] = 'D';
@@ -407,76 +406,18 @@ public class PortforwardingTest {
 		}
 	}
 
-	class LocalPortforwardingData {
-		private String serviceIP;
-		private String port = null;
+	private class LocalPortforwardingData {
+		private String ip;
+		private int port = 0;
 		private int recvCount = 0;
 		private int sentCount = 0;
 		private int returnValue = -1;
 	}
 
-	int forwardingData(String serviceIP, String servicePort, String shadowServicePort)
-	{
-		final LocalPortforwardingData server_ctxt = new LocalPortforwardingData();
-		server_ctxt.port = servicePort;
-		server_ctxt.recvCount = 0;
-		server_ctxt.sentCount = 0;
-		server_ctxt.returnValue = -1;
-
-		Thread serverThread = new Thread(new Runnable() {
-			@Override
-			public void run() {
-				//TODO server_thread_entry
-				serverThreadBody(server_ctxt);
-			}
-		});
-		serverThread.start();
-
-		final LocalPortforwardingData client_ctxt = new LocalPortforwardingData();
-		client_ctxt.serviceIP = serviceIP;
-		client_ctxt.port = shadowServicePort;
-		client_ctxt.recvCount = 0;
-		client_ctxt.sentCount = 1024;
-		client_ctxt.returnValue = -1;
-
-		Thread clientThread = new Thread(new Runnable() {
-			@Override
-			public void run() {
-				//TODO client_thread_entry
-				clientThreadBody(client_ctxt);
-			}
-		});
-		clientThread.start();
-
-		try {
-			clientThread.join();
-			serverThread.join();
-		}
-		catch (InterruptedException e) {
-			e.printStackTrace();
-		}
-
-		if (client_ctxt.returnValue == -1) {
-			Log.d(TAG, "client thread running failed");
-			return -1;
-		}
-
-		if (server_ctxt.returnValue == -1) {
-			Log.d(TAG, "server thread running failed");
-			return -1;
-		}
-
-		if (client_ctxt.sentCount != server_ctxt.recvCount) {
-			Log.d(TAG, "the number of sent bytes not match with recv bytes.");
-			return -1;
-		}
-
-		return 0;
-	}
-
 	class TestPortforwardingExecutor implements ITestChannelExecutor {
 		@Override
 		public void executor() {
+			int pfid = 0;
 			try {
 				assertTrue(robot.writeCmd(String.format("spfsvcadd %s tcp %s %s", service, Robot.ROBOTHOST, port)));
 
@@ -485,7 +426,7 @@ public class PortforwardingTest {
 				assertEquals("spfsvcadd", args[0]);
 				assertEquals("success", args[1]);
 
-				int pfid = stream.openPortForwarding(service, PortForwardingProtocol.TCP, localIP, shadowPort);
+				pfid = stream.openPortForwarding(service, PortForwardingProtocol.TCP, localIP, Integer.toString(++shadowPort));
 
 				if (pfid > 0) {
 					Log.d(TAG, "Open portforwarding successfully");
@@ -494,17 +435,59 @@ public class PortforwardingTest {
 					Log.d(TAG, String.format("Open portforwarding failed (0x%x)", pfid));
 				}
 
-				int rc = forwardingData(localIP, port, shadowPort);
-				assertTrue(rc == 0);
+				assertTrue(robot.writeCmd(String.format("spfsvcrun %s %s", Robot.ROBOTHOST, port)));
+				args = robot.readAck();
+				assertTrue(args != null && args.length == 2);
+				assertEquals("spfsvcrun", args[0]);
+				assertEquals("success", args[1]);
 
-				stream.closePortForwarding(pfid);
+				final LocalPortforwardingData client_ctxt = new LocalPortforwardingData();
+				client_ctxt.ip = localIP;
+				client_ctxt.port = shadowPort;
+				client_ctxt.recvCount = 0;
+				client_ctxt.sentCount = 1024;
+				client_ctxt.returnValue = -1;
+
+				Thread clientThread = new Thread(new Runnable() {
+					@Override
+					public void run() {
+						clientThreadBody(client_ctxt);
+					}
+				});
+				clientThread.start();
+
+				try {
+					clientThread.join();
+					assertTrue(client_ctxt.returnValue != -1);
+				}
+				catch (InterruptedException e) {
+					e.printStackTrace();
+				}
+
+				args = robot.readAck();
+				assertTrue(args != null && args.length == 3);
+				assertEquals("spfsvcrun", args[0]);
+				assertEquals("0", args[1]);
+				assertEquals("1024", args[2]);
 
 				assertTrue(robot.writeCmd(String.format("spfsvcremove %s", service)));
 			}
 			catch (ElastosException e) {
-				Log.d(TAG, "Open portforwarding failed: " + e.getErrorCode());
+				Log.d(TAG, "Open portforwarding failed: " + Integer.toHexString(e.getErrorCode()));
 				e.printStackTrace();
-				assertTrue(false);
+				fail();
+			}
+			finally {
+				if (pfid > 0) {
+					try {
+						stream.closePortForwarding(pfid);
+					}
+					catch (ElastosException e) {
+						Log.d(TAG, "Close portforwarding failed: " + Integer.toHexString(e.getErrorCode()));
+						e.printStackTrace();
+						fail();
+					}
+				}
 			}
 		}
 	}
@@ -513,16 +496,41 @@ public class PortforwardingTest {
 		@Override
 		public void executor() {
 			try {
-				session.addService(service, PortForwardingProtocol.TCP, localIP, port);
+				final LocalPortforwardingData server_ctxt = new LocalPortforwardingData();
+				server_ctxt.ip = localIP;
+				server_ctxt.port = port;
+				server_ctxt.recvCount = 0;
+				server_ctxt.sentCount = 0;
+				server_ctxt.returnValue = -1;
 
-				assertTrue(robot.writeCmd(String.format("spfopen %s tcp %s %s", service, Robot.ROBOTHOST, shadowPort)));
+				Thread serverThread = new Thread(new Runnable() {
+					@Override
+					public void run() {
+						serverThreadBody(server_ctxt);
+					}
+				});
+				serverThread.start();
+
+				session.addService(service, PortForwardingProtocol.TCP, localIP, Integer.toString(port));
+
+				assertTrue(robot.writeCmd(String.format("spfopen %s tcp %s %s", service, Robot.ROBOTHOST, (++shadowPort))));
 
 				String[] args = robot.readAck();
 				assertTrue(args != null && args.length == 2);
 				assertEquals("spfopen", args[0]);
 				assertEquals("success", args[1]);
-				int rc = forwardingData(Robot.ROBOTHOST, port, shadowPort);
-				assertTrue(rc == 0);
+
+				assertTrue(robot.writeCmd(String.format("spfsenddata %s %s\n", Robot.ROBOTHOST, shadowPort)));
+
+				args = robot.readAck();
+				assertTrue(args != null && args.length == 3);
+				assertEquals("spfsenddata", args[0]);
+				assertEquals("0", args[1]);
+				assertEquals("1024", args[2]);
+
+				serverThread.join();
+				assertTrue(server_ctxt.returnValue != -1);
+				assertEquals(1024, server_ctxt.recvCount);
 
 				assertTrue(robot.writeCmd("spfclose"));
 
@@ -533,9 +541,9 @@ public class PortforwardingTest {
 
 				session.removeService(service);
 			}
-			catch (ElastosException e) {
+			catch (ElastosException | InterruptedException e) {
 				e.printStackTrace();
-				assertTrue(false);
+				fail();
 			}
 		}
 	}
@@ -572,7 +580,7 @@ public class PortforwardingTest {
 		testStreamScheme(StreamType.Text, stream_options, executor);
 	}
 
-	@Ignore
+	@Test
 	public void testSessionPortforwardingReliable() {
 		int stream_options = 0;
 		stream_options |= Stream.PROPERTY_RELIABLE;
@@ -581,7 +589,7 @@ public class PortforwardingTest {
 		portforwardingImpl(stream_options);
 	}
 
-	@Ignore
+	@Test
 	public void testSessionPortforwardingReliablePlain() {
 		int stream_options = 0;
 		stream_options |= Stream.PROPERTY_RELIABLE;
