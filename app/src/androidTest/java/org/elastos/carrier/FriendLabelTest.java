@@ -86,10 +86,6 @@ public class FriendLabelTest {
 			e.printStackTrace();
 			assertTrue(false);
 		}
-		catch (Exception e) {
-			e.printStackTrace();
-			assertTrue(false);
-		}
 	}
 
 	@Test

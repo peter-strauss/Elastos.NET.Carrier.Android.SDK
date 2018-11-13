@@ -30,10 +30,10 @@ public class ChannelTest {
 	private static final String TAG = "ChannelTest";
 	private static TestContext context = new TestContext();
 	private static TestHandler handler = new TestHandler(context);
-	private static final SessionManagerHandler sessionHandler = new SessionManagerHandler();
 	private static RobotConnector robot;
 	private static Carrier carrier;
 	private static Manager sessionManager;
+	private static final SessionManagerHandler sessionHandler = new SessionManagerHandler();
 	private static final TestStreamHandler streamHandler = new TestStreamHandler();
 	private static Stream stream;
 	private static final TestSessionRequestCompleteHandler completeHandler
@@ -646,6 +646,8 @@ public class ChannelTest {
 			if ((!data.mState.equals(StreamState.Connecting)) && (!data.mState.equals(StreamState.Connected))) {
 				// if error, consume ctrl acknowlege from robot.
 				args = robot.readAck();
+				assertEquals("sconnect", args[0]);
+				assertEquals("failed", args[1]);
 			}
 
 			// Stream 'connecting' state is a transient state.

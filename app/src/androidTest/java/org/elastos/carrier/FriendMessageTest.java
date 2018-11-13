@@ -21,7 +21,7 @@ import static org.junit.Assert.assertFalse;
 public class FriendMessageTest {
 	private static final String TAG = "FriendMessageTest";
 	private static TestContext context = new TestContext();
-	private static TestHandler handler = new TestHandler(context);
+	private static final TestHandler handler = new TestHandler(context);
 	private static RobotConnector robot;
 	private static Carrier carrier;
 
@@ -126,7 +126,7 @@ public class FriendMessageTest {
 
 			TestContext.Bundle bundle = context.getExtra();
 			assertEquals(robot.getNodeid(), bundle.getFrom());
-			assertEquals(msg, (String) bundle.getExtraData());
+			assertEquals(msg, bundle.getExtraData().toString());
 		}
 		catch (ElastosException | InterruptedException e) {
 			e.printStackTrace();

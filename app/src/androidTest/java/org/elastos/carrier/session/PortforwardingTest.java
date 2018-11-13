@@ -29,7 +29,6 @@ import java.net.NetworkInterface;
 import java.net.ServerSocket;
 import java.net.Socket;
 import java.net.SocketException;
-import java.net.UnknownHostException;
 import java.util.Enumeration;
 
 import static org.junit.Assert.assertEquals;
@@ -42,11 +41,11 @@ public class PortforwardingTest {
 	private static final String TAG = "PortforwardingTest";
 	private static TestContext context = new TestContext();
 	private static TestHandler handler = new TestHandler(context);
-	private static SessionManagerHandler sessionHandler = new SessionManagerHandler();
+	private static final SessionManagerHandler sessionHandler = new SessionManagerHandler();
 	private static RobotConnector robot;
 	private static Carrier carrier;
 	private static Manager sessionManager;
-	private static TestStreamHandler streamHandler = new TestStreamHandler();
+	private static final TestStreamHandler streamHandler = new TestStreamHandler();
 	private static Session session;
 	private static Stream stream;
 	private static final String service = "test_portforwarding_service";
@@ -289,6 +288,8 @@ public class PortforwardingTest {
 			if ((!data.mState.equals(StreamState.Connecting)) && (!data.mState.equals(StreamState.Connected))) {
 				// if error, consume ctrl acknowlege from robot.
 				args = robot.readAck();
+				assertEquals("sconnect", args[0]);
+				assertEquals("failed", args[1]);
 			}
 
 			// Stream 'connecting' state is a transient state.
@@ -317,15 +318,12 @@ public class PortforwardingTest {
 
 			robot.writeCmd("sfree");
 		}
-		catch (ElastosException e) {
-			e.printStackTrace();
-		}
-		catch (InterruptedException e) {
+		catch (ElastosException | InterruptedException e) {
 			e.printStackTrace();
 		}
 	}
 
-	void serverThreadBody(final LocalPortforwardingData ctxt) {
+	private void serverThreadBody(final LocalPortforwardingData ctxt) {
 		try {
 			ctxt.returnValue = -1;
 			localServer = new ServerSocket(port, 10, InetAddress.getByName(localIP));
@@ -366,7 +364,7 @@ public class PortforwardingTest {
 		}
 	}
 
-	void clientThreadBody(final LocalPortforwardingData ctxt) {
+	private void clientThreadBody(final LocalPortforwardingData ctxt) {
 		try {
 			localClient = new Socket(ctxt.ip, ctxt.port);
 			char[] data = new char[1024];
@@ -557,7 +555,7 @@ public class PortforwardingTest {
 						.getInetAddresses(); enumIpAddr.hasMoreElements();) {
 					InetAddress inetAddress = enumIpAddr.nextElement();
 					if (!inetAddress.isLoopbackAddress() && !inetAddress.isLinkLocalAddress()) {
-						return inetAddress.getHostAddress().toString();
+						return inetAddress.getHostAddress();
 					}
 				}
 			}
@@ -568,13 +566,13 @@ public class PortforwardingTest {
 		return null;
 	}
 
-	void portforwardingImpl(int stream_options)
+	private void portforwardingImpl(int stream_options)
 	{
 		TestPortforwardingExecutor executor = new TestPortforwardingExecutor();
 		testStreamScheme(StreamType.Text, stream_options, executor);
 	}
 
-	void reversedPortforwardingImpl(int stream_options)
+	private void reversedPortforwardingImpl(int stream_options)
 	{
 		TestReversedPortforwardingExecutor executor = new TestReversedPortforwardingExecutor();
 		testStreamScheme(StreamType.Text, stream_options, executor);

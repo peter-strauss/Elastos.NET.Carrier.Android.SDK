@@ -27,11 +27,11 @@ public class RequestReplyTest {
 	private static final String TAG = "RequestReplyTest";
 	private static TestContext context = new TestContext();
 	private static TestHandler handler = new TestHandler(context);
-	private static SessionManagerHandler sessionHandler = new SessionManagerHandler();
 	private static RobotConnector robot;
 	private static Carrier carrier;
 	private static Manager sessionManager;
-	private static TestStreamHandler streamHandler = new TestStreamHandler();
+	private static final SessionManagerHandler sessionHandler = new SessionManagerHandler();
+	private static final TestStreamHandler streamHandler = new TestStreamHandler();
 	private static Session session;
 	private static Stream stream;
 
@@ -212,7 +212,7 @@ public class RequestReplyTest {
 		testStreamReplyScheme(StreamType.Text, 0, null);
 	}
 
-	static void testStreamReplyScheme(StreamType stream_type, int stream_options
+	private static void testStreamReplyScheme(StreamType stream_type, int stream_options
 				, ITestChannelExecutor channelExecutor)
 	{
 		assertTrue(TestHelper.addFriendAnyway(carrier, robot, context, handler));
@@ -276,6 +276,8 @@ public class RequestReplyTest {
 			if ((!data.mState.equals(StreamState.Connecting)) && (data.mState.equals(StreamState.Connected))) {
 				// if error, consume ctrl acknowlege from robot.
 				args = robot.readAck();
+				assertEquals("sconnect", args[0]);
+				assertEquals("failed", args[1]);
 			}
 
 			assertTrue(data.mState == StreamState.Connecting || data.mState == StreamState.Connected);
@@ -303,10 +305,7 @@ public class RequestReplyTest {
 
 			robot.writeCmd("sfree");
 		}
-		catch (ElastosException e) {
-			e.printStackTrace();
-		}
-		catch (InterruptedException e) {
+		catch (ElastosException | InterruptedException e) {
 			e.printStackTrace();
 		}
 	}
@@ -378,6 +377,8 @@ public class RequestReplyTest {
 			if ((!data.mState.equals(StreamState.Connecting)) && (!data.mState.equals(StreamState.Connected))) {
 				// if error, consume ctrl acknowlege from robot.
 				args = robot.readAck();
+				assertEquals("sconnect", args[0]);
+				assertEquals("failed", args[1]);
 			}
 
 			// Stream 'connecting' state is a transient state.

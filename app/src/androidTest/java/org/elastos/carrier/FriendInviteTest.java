@@ -22,7 +22,7 @@ public class FriendInviteTest {
 	private static final String TAG = "FriendInviteTest";
 
 	private static TestContext context = new TestContext();
-	private static TestHandler handler = new TestHandler(context);
+	private static final TestHandler handler = new TestHandler(context);
 	private static RobotConnector robot;
 	private static Carrier carrier;
 
@@ -95,7 +95,7 @@ public class FriendInviteTest {
 	}
 
 	class InviteResposeHandler implements FriendInviteResponseHandler {
-		TestHandler mTestHandler;
+		final TestHandler mTestHandler;
 		TestContext mContext;
 		InviteResposeHandler(TestContext context, TestHandler handler) {
 			mContext = context;

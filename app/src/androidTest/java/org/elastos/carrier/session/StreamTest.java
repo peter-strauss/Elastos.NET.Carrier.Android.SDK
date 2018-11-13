@@ -28,11 +28,11 @@ public class StreamTest {
 	private static final String TAG = "StreamTest";
 	private static TestContext context = new TestContext();
 	private static TestHandler handler = new TestHandler(context);
-	private static SessionManagerHandler sessionHandler = new SessionManagerHandler();
 	private static RobotConnector robot;
 	private static Carrier carrier;
 	private static Manager sessionManager;
-	private static TestStreamHandler streamHandler = new TestStreamHandler();
+	private static final SessionManagerHandler sessionHandler = new SessionManagerHandler();
+	private static final TestStreamHandler streamHandler = new TestStreamHandler();
 	private static Session session;
 	private static Stream stream;
 
@@ -203,8 +203,8 @@ public class StreamTest {
 		}
 	}
 
-	static int sReturnValue = 0;
-	static int doBulkWrite()
+	private static int sReturnValue = 0;
+	private static void doBulkWrite()
 	{
 		final int MIN_DATA_SIZE = 1024*1024*10;
 		final int MAX_DATA_SIZE = 1024*1024*100;
@@ -236,7 +236,7 @@ public class StreamTest {
 
 				int rc = 0;
 
-				byte[] charBytes = TestHelper.getBytes(packet);;
+				byte[] charBytes = TestHelper.getBytes(packet);
 				long start = System.currentTimeMillis();
 				for (int i = 0; i < packet_count; i++) {
 					int total = packet_size;
@@ -260,7 +260,7 @@ public class StreamTest {
 								continue;
 							}
 							else {
-								Log.d(TAG, String.format("Write data failed: ", e.getErrorCode()));
+								Log.d(TAG, String.format("Write data failed: %s.", e.getErrorCode()));
 								return;
 							}
 						}
@@ -296,7 +296,7 @@ public class StreamTest {
 		return sReturnValue;
 	}
 
-	void testStreamWrite(int stream_options)
+	private void testStreamWrite(int stream_options)
 	{
 		testStreamScheme(StreamType.Text, stream_options);
 	}
@@ -369,6 +369,9 @@ public class StreamTest {
 							&& (!data.mState.equals(StreamState.Connected))) {
 				// if error, consume ctrl acknowlege from robot.
 				args = robot.readAck();
+				assertEquals("sconnect", args[0]);
+				assertEquals("failed", args[1]);
+
 			}
 
 			// Stream 'connecting' state is a transient state.
@@ -396,10 +399,7 @@ public class StreamTest {
 
 			robot.writeCmd("sfree");
 		}
-		catch (ElastosException e) {
-			e.printStackTrace();
-		}
-		catch (InterruptedException e) {
+		catch (ElastosException | InterruptedException e) {
 			e.printStackTrace();
 		}
 	}
