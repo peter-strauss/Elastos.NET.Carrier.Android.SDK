@@ -986,11 +986,13 @@ public class Carrier {
 	 * 		CarrierException
 	 * 		IllegalArgumentException
 	 */
-	public Group groupJoin(String friendId, byte[] cookie, GroupHandler handler) throws CarrierException {
-		if (friendId == null || cookie == null || handler == null || friendId.length() == 0 || cookie.length == 0)
+	public Group groupJoin(String friendId, byte[] cookie, GroupHandler handler )
+		throws CarrierException {
+		if (friendId == null || cookie == null || handler == null ||
+				friendId.length() == 0 || cookie.length == 0)
 			throw new IllegalArgumentException();
 
-		Group group = new Group(this, friendId, cookie, handler);
+		Group group = new Group(this, handler, friendId, cookie);
 		groups.put(group.getId(), group);
 		return group;
 	}
@@ -1006,7 +1008,7 @@ public class Carrier {
 	 * 		IllegalArgumentException
 	 */
 	public void groupLeave(Group group) throws CarrierException {
-		if (group == null || group.getCarrier() != this)
+		if (group == null)
 			throw new IllegalArgumentException();
 
 		Group tmp = groups.remove(group.getId());

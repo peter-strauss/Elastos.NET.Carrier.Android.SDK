@@ -38,7 +38,7 @@ public class Group {
      */
     public static final int MAX_GROUP_TITLE_LEN = 127;
 
-    private String id;
+    private String groupId;
     private GroupHandler handler;
     private Carrier carrier;
 
@@ -56,17 +56,17 @@ public class Group {
     private static native int get_error_code();
 
     Group(Carrier carrier, GroupHandler handler) throws CarrierException {
-        id = new_group(carrier);
-        if (id == null)
+        groupId = new_group(carrier);
+        if (groupId == null)
             throw CarrierException.fromErrorCode(get_error_code());
 
         this.handler = handler;
         this.carrier = carrier;
     }
 
-    Group(Carrier carrier, String friendId, byte[] cookie, GroupHandler handler) throws CarrierException {
-        id = group_join(carrier, friendId, cookie);
-        if (id == null)
+    Group(Carrier carrier, GroupHandler handler, String friendId, byte[] cookie) throws CarrierException {
+        groupId = group_join(carrier, friendId, cookie);
+        if (groupId == null)
             throw CarrierException.fromErrorCode(get_error_code());
 
         this.handler = handler;
@@ -74,12 +74,12 @@ public class Group {
     }
 
     void leave() throws CarrierException {
-        if (!leave_group(carrier, id))
+        if (!leave_group(carrier, groupId))
             throw CarrierException.fromErrorCode(get_error_code());
     }
 
     String getId() {
-        return id;
+        return groupId;
     }
 
     void connected() {
@@ -103,16 +103,6 @@ public class Group {
     }
 
     /**
-     * Get the associating Carrier instance.
-     *
-     * @return
-     * 		The associating Carrier instance
-     */
-    public Carrier getCarrier() {
-        return carrier;
-    }
-
-    /**
      * Invite a specified friend into group.
      *
      * @param
@@ -126,7 +116,7 @@ public class Group {
         if (friendId == null || friendId.length() == 0)
             throw new IllegalArgumentException();
 
-        if (!group_invite(carrier, id, friendId))
+        if (!group_invite(carrier, groupId, friendId))
             throw CarrierException.fromErrorCode(get_error_code());
     }
 
@@ -149,7 +139,7 @@ public class Group {
         if (message == null || message.length == 0 || message.length > MAX_APP_MESSAGE_LEN)
             throw new IllegalArgumentException();
 
-        if (!group_send_message(carrier, id, message))
+        if (!group_send_message(carrier, groupId, message))
             throw CarrierException.fromErrorCode(get_error_code());
     }
 
@@ -163,7 +153,7 @@ public class Group {
      * 		CarrierException
      */
     public String getTitle() throws CarrierException {
-        String title = group_get_title(carrier, id);
+        String title = group_get_title(carrier, groupId);
         if (title == null)
             throw CarrierException.fromErrorCode(get_error_code());
 
@@ -184,17 +174,22 @@ public class Group {
         if (title == null || title.length() == 0 || title.length() > MAX_GROUP_TITLE_LEN)
             throw new IllegalArgumentException();
 
-        if (!group_set_title(carrier, id, title))
+        if (!group_set_title(carrier, groupId, title))
             throw CarrierException.fromErrorCode(get_error_code());
     }
 
+    /**
+     * A class representing group peer information.
+     *
+     * Include the basic userid and it's nickname.
+     */
     public class PeerInfo {
-        private String name;
         private String userId;
+        private String name;
 
-        PeerInfo(String name, String userId) {
-            this.name = name;
+        private PeerInfo(String name, String userId) {
             this.userId = userId;
+            this.name = name;
         }
 
         public String getName() {
@@ -217,7 +212,7 @@ public class Group {
      */
     public List<PeerInfo> getPeers() throws CarrierException {
         List<PeerInfo> peers = new ArrayList<PeerInfo>();
-        boolean result = group_get_peers(carrier, id, new GroupPeersIterator() {
+        boolean result = group_get_peers(carrier, groupId, new GroupPeersIterator() {
             public boolean onIterated(PeerInfo peerInfo, Object context) {
                 @SuppressWarnings({"unchecked"})
                 List<PeerInfo> peers = (List<PeerInfo>)context;
@@ -250,7 +245,7 @@ public class Group {
         if (peerId == null || peerId.length() == 0)
             throw new IllegalArgumentException();
 
-        PeerInfo peerInfo = group_get_peer(carrier, id, peerId);
+        PeerInfo peerInfo = group_get_peer(carrier, groupId, peerId);
         if (peerInfo == null)
             throw CarrierException.fromErrorCode(get_error_code());
 
