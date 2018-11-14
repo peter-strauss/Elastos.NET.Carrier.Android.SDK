@@ -331,12 +331,17 @@ public class PortforwardingTest {
 
 			Socket client = localServer.accept();
 			DataInputStream reader = new DataInputStream(client.getInputStream());
-			String msg;
+			int readLen = 0;
+			byte[] dataBuffer = new byte[1024];
+
 			while (true) {
 				try {
-					msg = reader.readUTF();
-					Log.d(TAG, "recv msg="+msg);
-					ctxt.recvCount += msg.getBytes().length;
+					readLen = reader.read(dataBuffer);
+					if (readLen == -1) {
+						break;
+					}
+					Log.d(TAG, String.format("recv len=[%d], msg[%s]", ctxt.recvCount, (new String(dataBuffer))));
+					ctxt.recvCount += readLen;
 				}
 				catch (EOFException e) {
 					break;
@@ -380,7 +385,7 @@ public class PortforwardingTest {
 
 			DataOutputStream writer = new DataOutputStream(localClient.getOutputStream());
 			for (int i = 0; i < ctxt.sentCount; i++) {
-				writer.writeUTF(new String(data));
+				writer.writeBytes(new String(data));
 			}
 
 			Log.d(TAG, String.format("finished sending %d Kbytes data", ctxt.sentCount));
@@ -433,10 +438,10 @@ public class PortforwardingTest {
 					Log.d(TAG, String.format("Open portforwarding failed (0x%x)", pfid));
 				}
 
-				assertTrue(robot.writeCmd(String.format("spfsvcrun %s %s", Robot.ROBOTHOST, port)));
+				assertTrue(robot.writeCmd(String.format("spfrecvdata %s %s", Robot.ROBOTHOST, port)));
 				args = robot.readAck();
 				assertTrue(args != null && args.length == 2);
-				assertEquals("spfsvcrun", args[0]);
+				assertEquals("spfrecvdata", args[0]);
 				assertEquals("success", args[1]);
 
 				final LocalPortforwardingData client_ctxt = new LocalPortforwardingData();
@@ -464,7 +469,7 @@ public class PortforwardingTest {
 
 				args = robot.readAck();
 				assertTrue(args != null && args.length == 3);
-				assertEquals("spfsvcrun", args[0]);
+				assertEquals("spfrecvdata", args[0]);
 				assertEquals("0", args[1]);
 				assertEquals("1024", args[2]);
 
@@ -518,7 +523,9 @@ public class PortforwardingTest {
 				assertEquals("spfopen", args[0]);
 				assertEquals("success", args[1]);
 
-				assertTrue(robot.writeCmd(String.format("spfsenddata %s %s\n", Robot.ROBOTHOST, shadowPort)));
+				assertTrue(robot.writeCmd(String.format("spfsenddata %s %s", Robot.ROBOTHOST, shadowPort)));
+
+				Thread.sleep(500);
 
 				args = robot.readAck();
 				assertTrue(args != null && args.length == 3);

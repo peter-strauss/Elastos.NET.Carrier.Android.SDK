@@ -293,7 +293,7 @@ public class StreamTest {
 			e.printStackTrace();
 		}
 
-		return sReturnValue;
+		assertEquals(0, sReturnValue);
 	}
 
 	private void testStreamWrite(int stream_options)
