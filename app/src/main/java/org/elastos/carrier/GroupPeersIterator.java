@@ -23,16 +23,16 @@
 package org.elastos.carrier;
 
 interface GroupPeersIterator {
-    /**
-     * The callback function to iterate each peer in a group.
-     *
-     * @param
-     * 		peerInfo		The information of a peer in the group
-     * @param
-     * 		context 		The application defined context data.
-     *
-     * @return
-     * 		True to continue iterate next peer, false to stop iteration.
-     */
-    boolean onIterated(Group.PeerInfo peerInfo, Object context);
+	/**
+	 * The callback function to iterate each peer in a group.
+	 *
+	 * @param
+	 * 		peerInfo		The information of a peer in the group
+	 * @param
+	 * 		context 		The application defined context data.
+	 *
+	 * @return
+	 * 		True to continue iterate next peer, false to stop iteration.
+	 */
+	boolean onIterated(Group.PeerInfo peerInfo, Object context);
 }

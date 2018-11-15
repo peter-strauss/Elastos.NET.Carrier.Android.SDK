@@ -23,55 +23,55 @@
 package org.elastos.carrier;
 
 interface GroupHandler {
-    /**
-     * The callback function that process event of being connected to group.
-     *
-     * @param
-     *      group       The target group connected
-     */
-    void onGroupConnected(Group group);
+	/**
+	 * The callback function that process event of being connected to group.
+	 *
+	 * @param
+	 *      group       The target group connected
+	 */
+	void onGroupConnected(Group group);
 
-    /**
-     * The callback function that process the group messages.
-     *
-     * @param
-     *      group       The group that received message
-     * @param
-     *      from        The user id who send the message
-     * @param
-     *      message     The message content
-     */
-    void onGroupMessage(Group group, String from, byte[] message);
+	/**
+	 * The callback function that process the group messages.
+	 *
+	 * @param
+	 *      group       The group that received message
+	 * @param
+	 *      from        The user id who send the message
+	 * @param
+	 *      message     The message content
+	 */
+	void onGroupMessage(Group group, String from, byte[] message);
 
-    /**
-     * The callback function that process the group title change event.
-     *
-     * @param
-     *      group       The group id of its title changed
-     * @param
-     *      from        The peer Id who changed title name
-     * @param
-     *      title       The updated title name
-     */
-    void onGroupTitle(Group group, String from, String title);
+	/**
+	 * The callback function that process the group title change event.
+	 *
+	 * @param
+	 *      group       The group id of its title changed
+	 * @param
+	 *      from        The peer Id who changed title name
+	 * @param
+	 *      title       The updated title name
+	 */
+	void onGroupTitle(Group group, String from, String title);
 
-    /**
-     * The callback function that process the group peer's name change event.
-     *
-     * @param
-     *      group       The target group
-     * @param
-     *      peerId      The peer Id who changed its name
-     * @param
-     *      peerName    The updated peer name
-     */
-    void onPeerName(Group group, String peerId, String peerName);
+	/**
+	 * The callback function that process the group peer's name change event.
+	 *
+	 * @param
+	 *      group       The target group
+	 * @param
+	 *      peerId      The peer Id who changed its name
+	 * @param
+	 *      peerName    The updated peer name
+	 */
+	void onPeerName(Group group, String peerId, String peerName);
 
-    /**
-     * The callback function that process the group list change event.
-     *
-     * @param
-     *      group       The target group that changed it's peer list
-     */
-    void onPeerListChanged(Group group);
+	/**
+	 * The callback function that process the group list change event.
+	 *
+	 * @param
+	 *      group       The target group that changed it's peer list
+	 */
+	void onPeerListChanged(Group group);
 }

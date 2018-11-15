@@ -28,227 +28,227 @@ import java.util.ArrayList;
 import org.elastos.carrier.exceptions.CarrierException;
 
 public class Group {
-    /**
-     * Carrier App message max length.
-     */
-    public static final int MAX_APP_MESSAGE_LEN = 1024;
+	/**
+	 * Carrier App message max length.
+	 */
+	public static final int MAX_APP_MESSAGE_LEN = 1024;
 
-    /**
-     * Max Carrier group title length.
-     */
-    public static final int MAX_GROUP_TITLE_LEN = 127;
+	/**
+	 * Max Carrier group title length.
+	 */
+	public static final int MAX_GROUP_TITLE_LEN = 127;
 
-    private String groupId;
-    private GroupHandler handler;
-    private Carrier carrier;
+	private String groupId;
+	private GroupHandler handler;
+	private Carrier carrier;
 
-    private static native String new_group(Carrier carrier);
-    private static native String group_join(Carrier carrier, String friendId, byte[] cookie);
-    private native boolean leave_group(Carrier carrier, String groupId);
-    private native boolean group_invite(Carrier carrier, String groupId, String friendId);
+	private static native String new_group(Carrier carrier);
+	private static native String group_join(Carrier carrier, String friendId, byte[] cookie);
+	private native boolean leave_group(Carrier carrier, String groupId);
+	private native boolean group_invite(Carrier carrier, String groupId, String friendId);
 
-    private native boolean group_send_message(Carrier carrier, String groupId, byte[] message);
-    private native String group_get_title(Carrier carrier, String groupId);
-    private native boolean group_set_title(Carrier carrier, String groupId, String title);
-    private native boolean group_get_peers(Carrier carrier, String groupId, GroupPeersIterator iterator, Object context);
-    private native PeerInfo group_get_peer(Carrier carrier, String groupId, String peerId);
+	private native boolean group_send_message(Carrier carrier, String groupId, byte[] message);
+	private native String group_get_title(Carrier carrier, String groupId);
+	private native boolean group_set_title(Carrier carrier, String groupId, String title);
+	private native boolean group_get_peers(Carrier carrier, String groupId, GroupPeersIterator iterator, Object context);
+	private native PeerInfo group_get_peer(Carrier carrier, String groupId, String peerId);
 
-    private static native int get_error_code();
+	private static native int get_error_code();
 
-    Group(Carrier carrier, GroupHandler handler) throws CarrierException {
-        groupId = new_group(carrier);
-        if (groupId == null)
-            throw CarrierException.fromErrorCode(get_error_code());
+	Group(Carrier carrier, GroupHandler handler) throws CarrierException {
+		groupId = new_group(carrier);
+		if (groupId == null)
+			throw CarrierException.fromErrorCode(get_error_code());
 
-        this.handler = handler;
-        this.carrier = carrier;
-    }
+		this.handler = handler;
+		this.carrier = carrier;
+	}
 
-    Group(Carrier carrier, GroupHandler handler, String friendId, byte[] cookie) throws CarrierException {
-        groupId = group_join(carrier, friendId, cookie);
-        if (groupId == null)
-            throw CarrierException.fromErrorCode(get_error_code());
+	Group(Carrier carrier, GroupHandler handler, String friendId, byte[] cookie) throws CarrierException {
+		groupId = group_join(carrier, friendId, cookie);
+		if (groupId == null)
+			throw CarrierException.fromErrorCode(get_error_code());
 
-        this.handler = handler;
-        this.carrier = carrier;
-    }
+		this.handler = handler;
+		this.carrier = carrier;
+	}
 
-    void leave() throws CarrierException {
-        if (!leave_group(carrier, groupId))
-            throw CarrierException.fromErrorCode(get_error_code());
-    }
+	void leave() throws CarrierException {
+		if (!leave_group(carrier, groupId))
+			throw CarrierException.fromErrorCode(get_error_code());
+	}
 
-    String getId() {
-        return groupId;
-    }
+	String getId() {
+		return groupId;
+	}
 
-    void connected() {
-        handler.onGroupConnected(this);
-    }
+	void connected() {
+		handler.onGroupConnected(this);
+	}
 
-    void messageReceived(String from, byte[] message) {
-        handler.onGroupMessage(this, from, message);
-    }
+	void messageReceived(String from, byte[] message) {
+		handler.onGroupMessage(this, from, message);
+	}
 
-    void titleChanged(String from, String title) {
-        handler.onGroupTitle(this, from, title);
-    }
+	void titleChanged(String from, String title) {
+		handler.onGroupTitle(this, from, title);
+	}
 
-    void peerNameChanged(String peerId, String newName) {
-        handler.onPeerName(this, peerId, newName);
-    }
+	void peerNameChanged(String peerId, String newName) {
+		handler.onPeerName(this, peerId, newName);
+	}
 
-    void peerListChanged() {
-        handler.onPeerListChanged(this);
-    }
+	void peerListChanged() {
+		handler.onPeerListChanged(this);
+	}
 
-    /**
-     * Invite a specified friend into group.
-     *
-     * @param
-     *	  friendId	The invited friendId
-     *
-     * @throws
-     * 		CarrierException
-     * 		IllegalArgumentException
-     */
-    public void invite(String friendId) throws CarrierException {
-        if (friendId == null || friendId.length() == 0)
-            throw new IllegalArgumentException();
+	/**
+	 * Invite a specified friend into group.
+	 *
+	 * @param
+	 *	  friendId	The invited friendId
+	 *
+	 * @throws
+	 * 		CarrierException
+	 * 		IllegalArgumentException
+	 */
+	public void invite(String friendId) throws CarrierException {
+		if (friendId == null || friendId.length() == 0)
+			throw new IllegalArgumentException();
 
-        if (!group_invite(carrier, groupId, friendId))
-            throw CarrierException.fromErrorCode(get_error_code());
-    }
+		if (!group_invite(carrier, groupId, friendId))
+			throw CarrierException.fromErrorCode(get_error_code());
+	}
 
-    /**
-     * Send a message to a group.
-     *
-     * The message length may not exceed MAX_APP_MESSAGE_LEN. Larger messages
-     * must be split by application and sent as separate fragments. Other carrier
-     * nodes can reassemble the fragments.
-     *
-     * Message may not be empty or null.
-     * @param
-     *	  message	 The message content defined by application
-     *
-     * @throws
-     * 		CarrierException
-     * 		IllegalArgumentException
-     */
-    public void sendMessage(byte[] message) throws CarrierException {
-        if (message == null || message.length == 0 || message.length > MAX_APP_MESSAGE_LEN)
-            throw new IllegalArgumentException();
+	/**
+	 * Send a message to a group.
+	 *
+	 * The message length may not exceed MAX_APP_MESSAGE_LEN. Larger messages
+	 * must be split by application and sent as separate fragments. Other carrier
+	 * nodes can reassemble the fragments.
+	 *
+	 * Message may not be empty or null.
+	 * @param
+	 *	  message	 The message content defined by application
+	 *
+	 * @throws
+	 * 		CarrierException
+	 * 		IllegalArgumentException
+	 */
+	public void sendMessage(byte[] message) throws CarrierException {
+		if (message == null || message.length == 0 || message.length > MAX_APP_MESSAGE_LEN)
+			throw new IllegalArgumentException();
 
-        if (!group_send_message(carrier, groupId, message))
-            throw CarrierException.fromErrorCode(get_error_code());
-    }
+		if (!group_send_message(carrier, groupId, message))
+			throw CarrierException.fromErrorCode(get_error_code());
+	}
 
-    /**
-     * Get group title.
-     *
-     * @return
-     * 		The title of the specified group
-     *
-     * @throws
-     * 		CarrierException
-     */
-    public String getTitle() throws CarrierException {
-        String title = group_get_title(carrier, groupId);
-        if (title == null)
-            throw CarrierException.fromErrorCode(get_error_code());
+	/**
+	 * Get group title.
+	 *
+	 * @return
+	 * 		The title of the specified group
+	 *
+	 * @throws
+	 * 		CarrierException
+	 */
+	public String getTitle() throws CarrierException {
+		String title = group_get_title(carrier, groupId);
+		if (title == null)
+			throw CarrierException.fromErrorCode(get_error_code());
 
-        return title;
-    }
+		return title;
+	}
 
-    /**
-     * Set group title.
-     *
-     * @param
-     *	  title	   The title name to set(should be no longer than MAX_GROUP_TITLE_LEN)
-     *
-     * @throws
-     * 		CarrierException
-     * 		IllegalArgumentException
-     */
-    public void setTitle(String title) throws CarrierException {
-        if (title == null || title.length() == 0 || title.length() > MAX_GROUP_TITLE_LEN)
-            throw new IllegalArgumentException();
+	/**
+	 * Set group title.
+	 *
+	 * @param
+	 *	  title	   The title name to set(should be no longer than MAX_GROUP_TITLE_LEN)
+	 *
+	 * @throws
+	 * 		CarrierException
+	 * 		IllegalArgumentException
+	 */
+	public void setTitle(String title) throws CarrierException {
+		if (title == null || title.length() == 0 || title.length() > MAX_GROUP_TITLE_LEN)
+			throw new IllegalArgumentException();
 
-        if (!group_set_title(carrier, groupId, title))
-            throw CarrierException.fromErrorCode(get_error_code());
-    }
+		if (!group_set_title(carrier, groupId, title))
+			throw CarrierException.fromErrorCode(get_error_code());
+	}
 
-    /**
-     * A class representing group peer information.
-     *
-     * Include the basic userid and it's nickname.
-     */
-    public class PeerInfo {
-        private String userId;
-        private String name;
+	/**
+	 * A class representing group peer information.
+	 *
+	 * Include the basic userid and it's nickname.
+	 */
+	public class PeerInfo {
+		private String userId;
+		private String name;
 
-        private PeerInfo(String name, String userId) {
-            this.userId = userId;
-            this.name = name;
-        }
+		private PeerInfo(String name, String userId) {
+			this.userId = userId;
+			this.name = name;
+		}
 
-        public String getName() {
-            return name;
-        }
+		public String getName() {
+			return name;
+		}
 
-        public String getUserId() {
-            return userId;
-        }
-    }
+		public String getUserId() {
+			return userId;
+		}
+	}
 
-    /**
-     * Get group peer list.
-     *
-     * @return
-     * 		A list of all peers in the specified group
-     *
-     * @throws
-     * 		CarrierException
-     */
-    public List<PeerInfo> getPeers() throws CarrierException {
-        List<PeerInfo> peers = new ArrayList<PeerInfo>();
-        boolean result = group_get_peers(carrier, groupId, new GroupPeersIterator() {
-            public boolean onIterated(PeerInfo peerInfo, Object context) {
-                @SuppressWarnings({"unchecked"})
-                List<PeerInfo> peers = (List<PeerInfo>)context;
-                if (peerInfo != null)
-                    peers.add(peerInfo);
-                return true;
-            }
-        }, peers);
+	/**
+	 * Get group peer list.
+	 *
+	 * @return
+	 * 		A list of all peers in the specified group
+	 *
+	 * @throws
+	 * 		CarrierException
+	 */
+	public List<PeerInfo> getPeers() throws CarrierException {
+		List<PeerInfo> peers = new ArrayList<PeerInfo>();
+		boolean result = group_get_peers(carrier, groupId, new GroupPeersIterator() {
+			public boolean onIterated(PeerInfo peerInfo, Object context) {
+				@SuppressWarnings({"unchecked"})
+				List<PeerInfo> peers = (List<PeerInfo>)context;
+				if (peerInfo != null)
+					peers.add(peerInfo);
+				return true;
+			}
+		}, peers);
 
-        if (!result)
-            throw CarrierException.fromErrorCode(get_error_code());
+		if (!result)
+			throw CarrierException.fromErrorCode(get_error_code());
 
-        return peers;
-    }
+		return peers;
+	}
 
-    /**
-     * Get group peer information.
-     *
-     * @param
-     *	  peerId	  The target peerId to get it's information
-     *
-     * @return
-     * 		Information of the specified peer
-     *
-     * @throws
-     * 		CarrierException
-     * 		IllegalArgumentException
-     */
-    public PeerInfo GetPeer(String peerId) throws CarrierException {
-        if (peerId == null || peerId.length() == 0)
-            throw new IllegalArgumentException();
+	/**
+	 * Get group peer information.
+	 *
+	 * @param
+	 *	  peerId	  The target peerId to get it's information
+	 *
+	 * @return
+	 * 		Information of the specified peer
+	 *
+	 * @throws
+	 * 		CarrierException
+	 * 		IllegalArgumentException
+	 */
+	public PeerInfo GetPeer(String peerId) throws CarrierException {
+		if (peerId == null || peerId.length() == 0)
+			throw new IllegalArgumentException();
 
-        PeerInfo peerInfo = group_get_peer(carrier, groupId, peerId);
-        if (peerInfo == null)
-            throw CarrierException.fromErrorCode(get_error_code());
+		PeerInfo peerInfo = group_get_peer(carrier, groupId, peerId);
+		if (peerInfo == null)
+			throw CarrierException.fromErrorCode(get_error_code());
 
-        return peerInfo;
-    }
+		return peerInfo;
+	}
 }

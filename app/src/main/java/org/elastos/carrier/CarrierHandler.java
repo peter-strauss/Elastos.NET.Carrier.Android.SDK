@@ -161,7 +161,7 @@ public interface CarrierHandler {
 
 	/**
 	 * The callback function to process the friend invite request.
-     *
+	 *
 	 * @param
 	 * 		carrier   	Carrier node instance
 	 * @param
@@ -181,5 +181,5 @@ public interface CarrierHandler {
 	 * @param
 	 *      cookie      The application defined cookie send from friend
 	 */
-    void onGroupInvite(Carrier carrier, String from, byte[] cookie);
+	void onGroupInvite(Carrier carrier, String from, byte[] cookie);
 }
